@@ -26,10 +26,13 @@ from dcc_mcp_cache_inspector.bgeo_parser import (
 
 def _write_temp(data: bytes, suffix: str = ".bgeo") -> Path:
     """Write bytes to a named temporary file and return its Path."""
-    # Use a simple temp file approach
-    tmp = Path(tempfile.gettempdir()) / f"test_cache_{id(data)}{suffix}"
-    tmp.write_bytes(data)
-    return tmp
+    fh = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    try:
+        fh.write(data)
+        fh.flush()
+        return Path(fh.name)
+    finally:
+        fh.close()
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +59,7 @@ def test_detect_raw_json():
     """Files starting with '{' are detected as raw JSON bgeo."""
     raw = b'{"fileversion":"17.0"}'
     fmt, offset = _detect_format(raw)
-    assert "raw JSON" in fmt or "bgeo" in fmt
+    assert fmt == "bgeo (raw JSON)"
 
 
 def test_detect_unrecognized_raises():

@@ -247,7 +247,7 @@ class BgeoInfo:
                 continue
             entry: Dict[str, Any] = {
                 "name": a.get("name", "?"),
-                "storage": a.get("storage", a.get("type", "?")),
+                "storage": a.get("storage", "?"),
                 "size": a.get("size", 1),
                 "domain": a.get("type", "?"),
             }
@@ -278,8 +278,10 @@ def _detect_format(raw: bytes) -> Tuple[str, int]:
         return "bgeo.sc", len(BGEO_SC_MAGIC)
     if raw.startswith(BGEO_MAGIC):
         return "bgeo", len(BGEO_MAGIC)
-    # Fallback: some files start directly with JSON
-    stripped = raw.lstrip(b"\x00\x01\x02\x03 ")  # strip leading control chars
+    # Fallback: some old .bgeo variants omit the magic bytes and start
+    # directly with the JSON header. Strip ASCII whitespace (spaces
+    # caused by C-struct padding in older writers).
+    stripped = raw.lstrip(b" ")
     if stripped.startswith(b"{"):
         return "bgeo (raw JSON)", len(raw) - len(stripped)
     raise ValueError(
