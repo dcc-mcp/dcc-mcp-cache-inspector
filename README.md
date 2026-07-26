@@ -1,42 +1,40 @@
 # dcc-mcp-cache-inspector
 
-Read-only bgeo/bgeo.sc offline cache inspection — no Houdini required.
+Fail-closed guard for Houdini `.bgeo` and `.bgeo.sc` cache inspection.
 
-Extract metadata, attribute lists, bounding boxes, topology info, and
-version compatibility from Houdini geometry caches on any machine with
-Python 3.8+.
+## Status
 
-## Quick Start
+Cache parsing is disabled. Version 0.1.0 accepted synthetic `b"bgeo" + JSON`
+and `b"bgeo.sc" + Blosc(JSON)` envelopes that are not SideFX cache formats.
+Real `.bgeo` files use SideFX binary JSON, while `.bgeo.sc` files wrap that
+stream in the HSC container. Returning metadata from the synthetic envelopes
+could mislead automation, so the API now raises `UnsupportedFormatError` for
+every non-empty cache.
 
-```bash
-pip install dcc-mcp-cache-inspector
+Use Houdini's native `ginfo` utility (and `hsc -d` for `.sc`) until a
+conforming decoder is implemented and validated against real Houdini fixtures.
 
-# CLI
-dcc-mcp-cache-inspector inspect my_cache.bgeo
-
-# Python
-python -c "
-from dcc_mcp_cache_inspector import parse_bgeo_header
+```python
 from pathlib import Path
-info = parse_bgeo_header(Path('my_cache.bgeo'))
-print(info.point_count, info.file_version)
-"
+
+from dcc_mcp_cache_inspector import UnsupportedFormatError, parse_bgeo_header
+
+try:
+    parse_bgeo_header(Path("cache.bgeo"))
+except UnsupportedFormatError as exc:
+    print(exc)
 ```
 
-## .bgeo.sc Support
-
-Install the optional blosc dependency:
+## Development
 
 ```bash
-pip install dcc-mcp-cache-inspector[blosc]
+python -m pip install -e ".[dev]"
+ruff check .
+ruff format --check .
+pytest
+python -m build
+twine check dist/*
 ```
-
-## Format Support
-
-| Format    | Extension   | Required Deps      |
-|-----------|-------------|--------------------|
-| bgeo      | `.bgeo`     | None (stdlib only) |
-| bgeo.sc   | `.bgeo.sc`  | `blosc2` (optional) |
 
 ## License
 
