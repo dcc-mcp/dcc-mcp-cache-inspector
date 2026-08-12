@@ -9,8 +9,9 @@
 </p>
 
 Production-oriented, Houdini-free structural inspection for SideFX `.geo`,
-`.bgeo`, and `.bgeo.sc` caches. It exposes typed DCC-MCP tools, a standalone
-MCP service, and a local CLI without loading geometry into a DCC.
+`.bgeo`, and `.bgeo.sc` caches. This repository distributes one host-neutral,
+typed DCC-MCP Skill; it is not a DCC adapter, standalone server, CLI, or PyPI
+package.
 
 ![Compressed geometry cache decoded within bounded limits into privacy-safe counts, bounds, and attribute summaries](docs/images/cache-inspection-showcase.webp)
 
@@ -34,22 +35,13 @@ never returned.
 ## Install
 
 ```bash
-python -m pip install dcc-mcp-cache-inspector
+dcc-mcp-cli marketplace install dcc-mcp-cache-inspector --dcc houdini --reload
 ```
 
-Python 3.9 or newer is supported.
-
-## CLI
-
-```bash
-dcc-mcp-cache-inspector inspect cache/sim.0042.bgeo.sc
-dcc-mcp-cache-inspector attributes cache/sim.0042.bgeo.sc
-dcc-mcp-cache-inspector serve --port 0
-```
-
-Successful commands print one JSON document to stdout. Parse, format, and
-resource-limit failures print a structured error to stderr and exit with code
-2.
+Choose the concrete adapter that owns the workflow; the Skill declares
+`metadata.dcc-mcp.dcc: any` and can be installed for other DCCs. Python 3.9 or
+newer and `blosc>=1.11.2,<2` are required. Marketplace discovery reports the
+runtime requirement but never installs it automatically.
 
 ## Typed MCP tools
 
@@ -58,8 +50,9 @@ The bundled `cache-inspection` Skill registers two read-only tools:
 - `inspect_cache` for counts, bounds, primitive types, and attribute summaries
 - `list_attributes` for attribute definitions only
 
-The adapter entry point is `cache-inspector`. It runs as a standalone DCC-MCP
-instance and has no host PID, execution bridge, or main-thread requirement.
+The Skill executes through the selected concrete DCC sidecar. It does not create
+a fake `cache-inspector` DCC type and has no host PID, execution bridge, or
+main-thread ownership of its own.
 
 ## Supported format boundary
 
@@ -83,12 +76,12 @@ publishes the binary JSON reference separately:
 ## Development
 
 ```bash
-python -m pip install -e ".[dev]"
+python -m pip install pytest ruff pyyaml blosc dcc-mcp-core
 ruff check .
 ruff format --check .
 pytest
-python -m build
-twine check dist/*
+dcc-mcp-cli lint skill/cache-inspection --warnings-as-errors
+dcc-mcp-cli marketplace pack skill/cache-inspection --out dist/
 ```
 
 Architecture and validation details are in [docs/architecture.md](docs/architecture.md).

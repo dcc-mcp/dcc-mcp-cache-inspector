@@ -2,9 +2,10 @@
 
 ## Contract
 
-Cache Inspector is a standalone DCC-MCP adapter. It owns cache decoding and
-privacy-safe summarization; `dcc-mcp-core` owns discovery, Skill loading, job
-execution, HTTP/MCP transport, and registry integration.
+Cache Inspection is a host-neutral DCC-MCP Skill. It owns cache decoding and
+privacy-safe summarization; the selected concrete adapter and `dcc-mcp-core`
+own discovery, Skill loading, job execution, HTTP/MCP transport, and registry
+integration.
 
 ```text
 cache file
@@ -13,7 +14,7 @@ cache file
   -> optional bounded SCF/Blosc decode
   -> bounded ASCII or binary JSON decode
   -> privacy-safe structural projection
-  -> CLI JSON or typed DCC-MCP result
+  -> typed DCC-MCP result
 ```
 
 No step launches Houdini, evaluates cache content, mutates the input, or returns
@@ -21,15 +22,12 @@ raw point/primitive data.
 
 ## Components
 
-- `bgeo_parser.py` owns format recognition, bounded decoding, validation, and
+- `skill/cache-inspection/scripts/_bgeo_parser.py` owns format recognition,
+  bounded decoding, validation, and
   structural summaries.
-- `skills/cache-inspection` defines the typed, read-only MCP contract.
-- `server.py` composes the Skill with `DccServerBase` as a standalone instance.
-- `cli.py` provides local inspection and service lifecycle commands.
-
-The standalone server defaults `DCC_MCP_PYTHON_EXECUTABLE` to its active
-interpreter so Skill subprocesses use the same installed dependencies. An
-explicit operator-provided value is preserved.
+- `skill/cache-inspection` defines the typed, read-only, `dcc: any` contract.
+- the marketplace installs the Skill for an explicit concrete DCC and reports
+  the required `blosc` runtime without resolving it.
 
 ## Resource model
 
@@ -41,14 +39,14 @@ with an explicit warning.
 
 ## Compatibility
 
-The public package supports Python 3.9+. Runtime type annotations avoid PEP 604
-unions so `typing.get_type_hints` consumers remain compatible on Python 3.9.
-The server composes against `dcc-mcp-core` 0.19.91 or newer.
+The Skill supports Python 3.9+ and `dcc-mcp-core` 0.20.3+. Runtime type
+annotations avoid PEP 604 unions so `typing.get_type_hints` consumers remain
+compatible on Python 3.9.
 
 ## Validation
 
 Tests use an independent minimal binary-JSON fixture writer, SCF/Blosc fixtures,
-adversarial truncation and allocation cases, Skill schema validation, and
-standalone-server contract checks. Release acceptance additionally compares
-`.bgeo` and `.bgeo.sc` summaries exported from a real Houdini host and installs
-the built wheel into a clean environment.
+adversarial truncation and allocation cases, strict Skill schema validation,
+standalone script execution, and marketplace archive inspection. Acceptance
+additionally compares `.bgeo` and `.bgeo.sc` summaries exported from a real
+Houdini host.
