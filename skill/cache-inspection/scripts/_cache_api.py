@@ -10,7 +10,7 @@ from pathlib import Path
 # Skill scripts with a shared Python runner, whose ambient environment may also
 # contain an unrelated editable checkout with the same distribution name.
 _MODULE_NAME = "_dcc_mcp_cache_inspector_bgeo_parser"
-_MODULE_PATH = Path(__file__).resolve().parents[3] / "bgeo_parser.py"
+_MODULE_PATH = Path(__file__).resolve().with_name("_bgeo_parser.py")
 _SPEC = importlib.util.spec_from_file_location(_MODULE_NAME, _MODULE_PATH)
 if _SPEC is None or _SPEC.loader is None:  # pragma: no cover - importlib invariant
     raise ImportError("Unable to load the bundled Cache Inspector parser")

@@ -13,7 +13,7 @@ view, not a general-purpose geometry deserializer.
   expanded arrays
 - strict UTF-8 and token/length validation
 - no free-form `info` data or raw geometry values in results
-- structured, non-traceback CLI errors for expected invalid inputs
+- structured, non-traceback Skill errors for expected invalid inputs
 
 ## Privacy boundary
 

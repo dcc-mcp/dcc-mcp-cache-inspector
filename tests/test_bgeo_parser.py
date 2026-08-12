@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import struct
@@ -15,16 +16,20 @@ from typing import Any
 import blosc
 import pytest
 
-from dcc_mcp_cache_inspector import (
-    BgeoParseError,
-    ResourceLimitError,
-    UnsupportedFormatError,
-    inspect_cache,
-    list_cache_attributes,
-    parse_bgeo_header,
-)
-from dcc_mcp_cache_inspector.bgeo_parser import _bounds_from_paged_values
-from dcc_mcp_cache_inspector.cli import main
+_PARSER_PATH = Path(__file__).parents[1] / "skill" / "cache-inspection" / "scripts" / "_bgeo_parser.py"
+_SPEC = importlib.util.spec_from_file_location("_cache_inspection_test_parser", _PARSER_PATH)
+assert _SPEC is not None and _SPEC.loader is not None
+_PARSER = importlib.util.module_from_spec(_SPEC)
+sys.modules[_SPEC.name] = _PARSER
+_SPEC.loader.exec_module(_PARSER)
+
+BgeoParseError = _PARSER.BgeoParseError
+ResourceLimitError = _PARSER.ResourceLimitError
+UnsupportedFormatError = _PARSER.UnsupportedFormatError
+inspect_cache = _PARSER.inspect_cache
+list_cache_attributes = _PARSER.list_cache_attributes
+parse_bgeo_header = _PARSER.parse_bgeo_header
+_bounds_from_paged_values = _PARSER._bounds_from_paged_values
 
 _BINARY_MAGIC = 0x624A534E
 
@@ -259,19 +264,6 @@ def test_truncated_binary_and_scf_are_rejected(tmp_path: Path) -> None:
         inspect_cache(scf)
 
 
-def test_cli_emits_json_and_structured_errors(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    cache = _write(tmp_path / "fixture.bgeo", _binary_fixture())
-
-    assert main(["inspect", str(cache)]) == 0
-    output = json.loads(capsys.readouterr().out)
-    assert output["point_count"] == 2
-
-    assert main(["inspect", str(tmp_path / "missing.bgeo")]) == 2
-    error = json.loads(capsys.readouterr().err)
-    assert error["success"] is False
-    assert error["error_type"] == "FileNotFoundError"
-
-
 def test_skill_subprocess_uses_its_matching_package_and_emits_results(tmp_path: Path) -> None:
     cache = _write(tmp_path / "fixture.bgeo", _binary_fixture())
     shadow = tmp_path / "shadow" / "dcc_mcp_cache_inspector"
@@ -280,7 +272,7 @@ def test_skill_subprocess_uses_its_matching_package_and_emits_results(tmp_path: 
         'raise RuntimeError("ambient package must not be imported")\n',
         encoding="utf-8",
     )
-    scripts = Path(__file__).parents[1] / "src" / "dcc_mcp_cache_inspector" / "skills" / "cache-inspection" / "scripts"
+    scripts = Path(__file__).parents[1] / "skill" / "cache-inspection" / "scripts"
     env = os.environ.copy()
     env["PYTHONPATH"] = str(shadow.parent)
     request = json.dumps({"file_path": str(cache)})
@@ -308,3 +300,24 @@ def test_skill_subprocess_uses_its_matching_package_and_emits_results(tmp_path: 
     attributes_result = json.loads(attributes.stdout)
     assert attributes_result["success"] is True
     assert attributes_result["context"]["count"] == 1
+
+
+def test_skill_failure_omits_local_path_and_traceback(tmp_path: Path) -> None:
+    scripts = Path(__file__).parents[1] / "skill" / "cache-inspection" / "scripts"
+    missing = tmp_path / "private" / "missing.bgeo"
+    request = json.dumps({"file_path": str(missing)})
+
+    completed = subprocess.run(
+        [sys.executable, str(scripts / "inspect_cache.py")],
+        input=request,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    result = json.loads(completed.stdout)
+    serialized = json.dumps(result)
+    assert completed.returncode == 1
+    assert result["success"] is False
+    assert result["error"] == "FileNotFoundError"
+    assert str(tmp_path) not in serialized
+    assert "Traceback" not in serialized
