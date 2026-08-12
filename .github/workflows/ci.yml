@@ -49,9 +49,18 @@ jobs:
       - run: python -m ruff check .
       - run: python -m ruff format --check .
       - run: python -m pytest
+      - name: Install the pinned DCC-MCP CLI
+        shell: bash
+        run: |
+          mkdir -p .tools
+          curl --fail --location --silent --show-error \
+            https://github.com/dcc-mcp/dcc-mcp-core/releases/download/v0.20.3/dcc-mcp-cli-linux-x86_64 \
+            --output .tools/dcc-mcp-cli
+          echo "1eb33e50866a6dff73c032e2cc8691539034e9312d0962ebdc86057d26062a25  .tools/dcc-mcp-cli" | sha256sum --check
+          chmod +x .tools/dcc-mcp-cli
       - name: Validate and pack the Skill
         shell: bash
         run: |
-          dcc-mcp-cli lint skill/cache-inspection --warnings-as-errors
-          dcc-mcp-cli marketplace pack skill/cache-inspection --out dist/
+          .tools/dcc-mcp-cli lint skill/cache-inspection --warnings-as-errors
+          .tools/dcc-mcp-cli marketplace pack skill/cache-inspection --out dist/
           python -c "import pathlib, zipfile; archive=next(pathlib.Path('dist').glob('*.zip')); names=zipfile.ZipFile(archive).namelist(); assert any(name.endswith('SKILL.md') for name in names); assert any(name.endswith('scripts/_bgeo_parser.py') for name in names); assert not any('__pycache__' in name or name.endswith('.pyc') for name in names)"
