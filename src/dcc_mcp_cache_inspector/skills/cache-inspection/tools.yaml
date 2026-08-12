@@ -1,0 +1,107 @@
+tools:
+  - name: inspect_cache
+    description: Inspect a SideFX geo/bgeo/bgeo.sc cache and return bounded privacy-safe counts, bounds, primitive types, and attribute definitions.
+    source_file: scripts/inspect_cache.py
+    execution: sync
+    job_strategy: monolithic
+    affinity: any
+    enforce_thread_affinity: true
+    timeout_hint_secs: 30
+    input_schema:
+      type: object
+      required: [file_path]
+      properties:
+        file_path:
+          type: string
+          description: Absolute path to a .geo, .bgeo, or .bgeo.sc cache.
+        max_file_bytes:
+          type: integer
+          minimum: 1
+          maximum: 536870912
+          default: 536870912
+        max_decoded_bytes:
+          type: integer
+          minimum: 1
+          maximum: 536870912
+          default: 536870912
+    output_schema:
+      type: object
+      required: [success, message, context]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        context:
+          type: object
+          required: [inspection]
+          properties:
+            inspection:
+              type: object
+              additionalProperties: true
+    annotations:
+      read_only_hint: true
+      destructive_hint: false
+      idempotent_hint: true
+      open_world_hint: false
+    tags: [pipeline, read-only, houdini, cache]
+    call_examples:
+      - arguments:
+          file_path: "C:/cache/sim.0042.bgeo.sc"
+        note: Inspect a compressed simulation cache using bounded defaults.
+
+  - name: list_attributes
+    description: List privacy-safe attribute definitions from a SideFX geo/bgeo/bgeo.sc cache without returning geometry payloads.
+    source_file: scripts/list_attributes.py
+    execution: sync
+    job_strategy: monolithic
+    affinity: any
+    enforce_thread_affinity: true
+    timeout_hint_secs: 30
+    input_schema:
+      type: object
+      required: [file_path]
+      properties:
+        file_path:
+          type: string
+          description: Absolute path to a .geo, .bgeo, or .bgeo.sc cache.
+        max_file_bytes:
+          type: integer
+          minimum: 1
+          maximum: 536870912
+          default: 536870912
+        max_decoded_bytes:
+          type: integer
+          minimum: 1
+          maximum: 536870912
+          default: 536870912
+    output_schema:
+      type: object
+      required: [success, message, context]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        context:
+          type: object
+          required: [count, attributes]
+          properties:
+            count:
+              type: integer
+              minimum: 0
+            attributes:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+    annotations:
+      read_only_hint: true
+      destructive_hint: false
+      idempotent_hint: true
+      open_world_hint: false
+    tags: [pipeline, read-only, houdini, cache]
+    call_examples:
+      - arguments:
+          file_path: "C:/cache/sim.0042.bgeo.sc"
+        note: List attribute definitions without returning raw point data.
