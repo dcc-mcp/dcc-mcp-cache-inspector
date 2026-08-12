@@ -55,4 +55,4 @@ jobs:
         run: |
           python -m pip install --force-reinstall --no-deps dist/*.whl
           python -c "import importlib.metadata as m, importlib.resources as r, dcc_mcp_cache_inspector as p; assert p.__version__ == m.version('dcc-mcp-cache-inspector'); root = r.files('dcc_mcp_cache_inspector'); assert root.joinpath('skills', 'cache-inspection', 'SKILL.md').is_file(); assert root.joinpath('skills', 'cache-inspection', 'tools.yaml').is_file()"
-          test "$(dcc-mcp-cache-inspector --version)" = "$(python -c \"import importlib.metadata as m; print(m.version('dcc-mcp-cache-inspector'))\")"
+          python -c "import importlib.metadata as m, subprocess; expected = m.version('dcc-mcp-cache-inspector'); actual = subprocess.check_output(['dcc-mcp-cache-inspector', '--version'], text=True).strip(); assert actual == expected, (actual, expected)"
